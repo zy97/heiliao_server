@@ -32,35 +32,46 @@ pub static PLAYER_HTML: LazyLock<String> = LazyLock::new(|| {
   </style>
 </head>
 <body>
-  <div id="dplayer"></div>
+  <div id="dplayers"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
     const videoUrl = '#####';
+    const videoUrls = videoUrl.split('%&%&');
 
-    if (!videoUrl) {
+     if (videoUrls.length === 0) {
       document.body.innerHTML = '<h2 style="color:white;text-align:center">缺少视频地址</h2>';
     } else {
-      const dp = new DPlayer({
-        container: document.getElementById("dplayer"),
-        autoplay: false,
-        video: {
-          url: videoUrl,
-          type: "customHls",
-          customType: {
-            customHls: function (video, player) {
-              if (Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(video.src);
-                hls.attachMedia(video);
-              } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-                video.src = video.src;
+      const playersContainer = document.getElementById("players");
+
+      videoUrls.forEach((videoUrl, index) => {
+        // 创建容器
+        const div = document.createElement("div");
+        div.id = "dplayer-" + index;
+        div.className = "player-container";
+        playersContainer.appendChild(div);
+
+        // 初始化 DPlayer
+        new DPlayer({
+          container: div,
+          autoplay: false,
+          video: {
+            url: videoUrl,
+            type: "customHls",
+            customType: {
+              customHls: function (video, player) {
+                if (Hls.isSupported()) {
+                  const hls = new Hls();
+                  hls.loadSource(video.src);
+                  hls.attachMedia(video);
+                } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+                  video.src = video.src;
+                }
               }
             }
           }
-        }
+        });
       });
     }
   </script>

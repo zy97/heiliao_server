@@ -2,6 +2,7 @@
 name = "heiliao_server"
 version = "0.1.0"
 edition = "2024"
+description = "黑料和每日大赛的视频地址获取"
 
 [dependencies]
 actix-web = "4"

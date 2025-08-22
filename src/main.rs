@@ -40,15 +40,74 @@ async fn hl(
                         let html = resp.text().await.unwrap();
                         let document = Html::parse_document(&html);
                         let selector = Selector::parse(".dplayer").unwrap();
-                        let video = document.select(&selector).next().unwrap();
-                        let video_config = video.value().attr("config").unwrap_or("");
-                        //序列化
-                        let video_config: Value = serde_json::from_str(video_config).unwrap();
-                        let url = video_config["video"]["url"].as_str().unwrap();
+                        let mut video_addresses = Vec::new();
+                        let video_selectors = document.select(&selector);
+                        for video in video_selectors {
+                            let video_config = video.value().attr("config").unwrap_or("");
+                            //序列化
+                            let video_config: Value = serde_json::from_str(video_config).unwrap();
+                            let url = video_config["video"]["url"].as_str().unwrap();
+
+                            video_addresses.push(url.to_string());
+                        }
+                        let url = video_addresses.join("%&%&");
                         cache.insert(key, url.to_string()).await;
-                        println!("Video URL: {}", url);
                         let player_html = PLAYER_HTML.clone();
-                        let player_html = player_html.replace("#####", url);
+                        let player_html = player_html.replace("#####", &url);
+                        HttpResponse::Ok()
+                            .content_type("text/html")
+                            .body(player_html)
+                    } else {
+                        HttpResponse::BadRequest().body("Failed to fetch data")
+                    }
+                }
+                Err(_) => HttpResponse::InternalServerError().body("Internal Server Error"),
+            }
+        }
+    }
+}
+#[get("/mrds/{id}")]
+async fn mrds(
+    config: web::Data<Arc<Mutex<HashMap<String, String>>>>,
+    cache: web::Data<Cache<String, String>>,
+    id: web::Path<String>,
+) -> impl Responder {
+    let key = format!("mrds_{}", id);
+    let video_url = cache.get(&key).await;
+    match video_url {
+        Some(url) => {
+            let player_html = PLAYER_HTML.clone();
+            let player_html = player_html.replace("#####", &url);
+            HttpResponse::Ok()
+                .content_type("text/html")
+                .body(player_html)
+        }
+        None => {
+            let config = config.lock().unwrap();
+            let url = config.get("meiridasai").unwrap();
+            let url = format!("{}//archives/{}/", url, id);
+            let client = reqwest::Client::new();
+            let response = client.get(&url).send().await;
+            match response {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        let html = resp.text().await.unwrap();
+                        let document = Html::parse_document(&html);
+                        let selector = Selector::parse(".dplayer").unwrap();
+                        let mut video_addresses = Vec::new();
+                        let video_selectors = document.select(&selector);
+                        for video in video_selectors {
+                            let video_config = video.value().attr("data-config").unwrap_or("");
+                            //序列化
+                            let video_config: Value = serde_json::from_str(video_config).unwrap();
+                            let url = video_config["video"]["url"].as_str().unwrap();
+
+                            video_addresses.push(url.to_string());
+                        }
+                        let url = video_addresses.join("%&%&");
+                        cache.insert(key, url.to_string()).await;
+                        let player_html = PLAYER_HTML.clone();
+                        let player_html = player_html.replace("#####", &url);
                         HttpResponse::Ok()
                             .content_type("text/html")
                             .body(player_html)
@@ -82,6 +141,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(cache.clone()))
             .service(hl)
+            .service(mrds)
     })
     .bind(("0.0.0.0", 17618))?
     .run()
