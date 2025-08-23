@@ -43,7 +43,7 @@ pub static PLAYER_HTML: LazyLock<String> = LazyLock::new(|| {
      if (videoUrls.length === 0) {
       document.body.innerHTML = '<h2 style="color:white;text-align:center">缺少视频地址</h2>';
     } else {
-      const playersContainer = document.getElementById("players");
+      const playersContainer = document.getElementById("dplayers");
 
       videoUrls.forEach((videoUrl, index) => {
         // 创建容器
