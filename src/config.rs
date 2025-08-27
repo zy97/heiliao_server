@@ -70,7 +70,7 @@ pub static PLAYER_HTML: LazyLock<String> = LazyLock::new(|| {
           autoplay: false,
           video: {
             url: videoUrl,
-            type: "customHls",
+            type: "auto",
             customType: {
               customHls: function (video, player) {
                 if (Hls.isSupported()) {
