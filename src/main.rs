@@ -198,6 +198,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(cache.clone()))
             .service(hl)
             .service(mrds)
+            .service(caoliu)
     })
     .bind(("0.0.0.0", 17618))?
     .run()
