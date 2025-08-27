@@ -187,6 +187,7 @@ async fn main() -> std::io::Result<()> {
             "meiridasai".to_string(),
             APP_CONFIG.config.meiridasai.clone(),
         );
+        config.insert("caoliu".to_string(), APP_CONFIG.config.caoliu.clone());
     }
     let cache: Cache<String, String> = Cache::builder()
         .time_to_live(Duration::from_secs(ONE_WEEK_IN_SECONDS))
