@@ -120,6 +120,61 @@ async fn mrds(
         }
     }
 }
+#[get("/cl/{id:.*}")]
+async fn caoliu(
+    config: web::Data<Arc<Mutex<HashMap<String, String>>>>,
+    cache: web::Data<Cache<String, String>>,
+    id: web::Path<String>,
+) -> impl Responder {
+    let key = format!("cl_{}", id);
+    let video_url = cache.get(&key).await;
+    match video_url {
+        Some(url) => {
+            let player_html = PLAYER_HTML.clone();
+            let player_html = player_html.replace("#####", &url);
+            HttpResponse::Ok()
+                .content_type("text/html")
+                .body(player_html)
+        }
+        None => {
+            let config = config.lock().unwrap();
+            let url = config.get("caoliu").unwrap();
+            let url = format!("{}//htm_data/{}.html", url, id);
+            let mut headers = reqwest::header::HeaderMap::new();
+            headers.insert("cookie", "ismob=0".parse().unwrap());
+            let client = reqwest::Client::builder()
+                .default_headers(headers)
+                .build()
+                .unwrap();
+            let response = client.get(&url).send().await;
+            match response {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        let html = resp.text().await.unwrap();
+                        let document = Html::parse_document(&html);
+                        let selector = Selector::parse("#conttpc video").unwrap();
+                        let mut video_addresses = Vec::new();
+                        let video_selectors = document.select(&selector);
+                        for video in video_selectors {
+                            let url = video.value().attr("src").unwrap_or("");
+                            video_addresses.push(url.to_string());
+                        }
+                        let url = video_addresses.join("%&%&");
+                        cache.insert(key, url.to_string()).await;
+                        let player_html = PLAYER_HTML.clone();
+                        let player_html = player_html.replace("#####", &url);
+                        HttpResponse::Ok()
+                            .content_type("text/html")
+                            .body(player_html)
+                    } else {
+                        HttpResponse::BadRequest().body("Failed to fetch data")
+                    }
+                }
+                Err(_) => HttpResponse::InternalServerError().body("Internal Server Error"),
+            }
+        }
+    }
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
