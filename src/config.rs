@@ -22,12 +22,24 @@ pub static PLAYER_HTML: LazyLock<String> = LazyLock::new(|| {
       padding: 0;
       height: 100%;
       background-color: #000;
-      overflow: hidden;
+      overflow: auto; /* 允许滚动 */
     }
 
-    #dplayer {
+    #dplayers {
       width: 100%;
-      height: 100%;
+      min-height: 100%; /* 确保容器至少占满视口高度 */
+      display: flex;
+      flex-direction: column; /* 垂直排列播放器 */
+      gap: 20px; /* 播放器之间的间距 */
+      padding: 20px; /* 容器内边距 */
+      box-sizing: border-box;
+    }
+
+    .player-container {
+      width: 100%;
+      max-width: 800px; /* 限制播放器最大宽度 */
+      aspect-ratio: 16 / 9; /* 保持视频比例 */
+      margin: 0 auto; /* 居中 */
     }
   </style>
 </head>
@@ -43,7 +55,7 @@ pub static PLAYER_HTML: LazyLock<String> = LazyLock::new(|| {
      if (videoUrls.length === 0) {
       document.body.innerHTML = '<h2 style="color:white;text-align:center">缺少视频地址</h2>';
     } else {
-      const playersContainer = document.getElementById("players");
+      const playersContainer = document.getElementById("dplayers");
 
       videoUrls.forEach((videoUrl, index) => {
         // 创建容器
